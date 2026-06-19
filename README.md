@@ -48,55 +48,47 @@ The visual interface strictly follows the design requirements, avoiding gradient
 
 ## Setup & Installation
 
-### Prerequisites
-- Node.js (v18 or higher recommended)
-- MongoDB Atlas account (or a local MongoDB replica set setup)
-
-### 1. Backend Setup
-1. Navigate to the backend directory:
+### Local Development Setup
+1. **Prerequisites**: Ensure you have Node.js (v18+) and your MongoDB Atlas cluster URI.
+2. **Backend Setup**:
    ```bash
    cd backend
-   ```
-2. Install dependencies:
-   ```bash
    npm install
-   ```
-3. Configure environment variables in `.env`:
-   Create a `.env` file in the `backend/` folder (or edit the existing one):
-   ```env
+   # Create a backend/.env file with the following variables:
    PORT=5000
-   MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.dc5wogl.mongodb.net/sortmyscene?retryWrites=true&w=majority
+   MONGODB_URI=mongodb+srv://TauqeerAhmad:Test123@cluster0.dc5wogl.mongodb.net/sortmyscene?retryWrites=true&w=majority
    JWT_SECRET=super_secret_jwt_key_123_abc_xyz
    NODE_ENV=development
-   ```
-   *Note: If Node.js has DNS resolution issues on Windows for SRV connection strings, our script automatically configures custom DNS resolvers (`8.8.8.8`, `1.1.1.1`) inside `server.js` and `scripts/seed.js`.*
-
-4. **Seed the Database**:
-   Populate the database with sample events and initialize the 60-seat grids:
-   ```bash
+   
+   # Run the seeding script to populate events, users, and pre-booked seats:
    npm run seed
+   
+   # Start the Express API server:
+   npm start
    ```
-
-5. **Start the API Server**:
-   ```bash
-   npm run dev
-   ```
-   The backend will run on `http://localhost:5000`.
-
-### 2. Frontend Setup
-1. Navigate to the frontend directory:
+3. **Frontend Setup**:
    ```bash
    cd ../frontend
-   ```
-2. Install dependencies:
-   ```bash
    npm install
-   ```
-3. **Start the Vite Dev Server**:
-   ```bash
+   # Start the Vite local development server:
    npm run dev
    ```
-   The client application will run on `http://localhost:5173`.
+   *The React client runs on `http://localhost:5173`. Any relative `/api/*` call is automatically proxied to the Express backend on `http://localhost:5000/api/*` via the Vite proxy settings in `vite.config.js`.*
+
+---
+
+## 🚀 Unified Deployment on Vercel
+You can deploy both the React frontend and Express backend **together in a single Vercel project** using the root `vercel.json` configurations:
+
+1. **Push your code to GitHub** (make sure your repo root matches your project root).
+2. **Import the repository** into Vercel.
+3. In the project creation page:
+   - Keep the **Root Directory** as the repository root (do not change it to `frontend` or `backend`).
+   - Vercel will automatically read the root `vercel.json`, deploy the Express backend as serverless functions, and trigger the React static build.
+4. Add the following **Environment Variables** in the Vercel project settings:
+   - `MONGODB_URI`: `mongodb+srv://TauqeerAhmad:Test123@cluster0.dc5wogl.mongodb.net/sortmyscene?retryWrites=true&w=majority`
+   - `JWT_SECRET`: `super_secret_jwt_key_123_abc_xyz`
+5. Click **Deploy**. Vercel will build both, hosting the frontend statically at the root domain and routing all `/api/*` requests to the Express serverless function on the same domain automatically!
 
 ---
 
