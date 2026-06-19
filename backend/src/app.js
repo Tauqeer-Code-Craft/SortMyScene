@@ -7,47 +7,16 @@ const bookingRoutes = require('./routes/bookingRoutes');
 
 const app = express();
 
-// CORS configuration: Allow localhost, Vercel subdomains, and the custom FRONTEND_URL env
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5000',
-  'http://localhost:3000'
-];
-
-if (process.env.FRONTEND_URL) {
-  // Support comma-separated URLs in case there are multiple frontends
-  const urls = process.env.FRONTEND_URL.split(',').map(url => url.trim());
-  urls.forEach(url => {
-    if (url) {
-      if (allowedOrigins.indexOf(url) === -1) {
-        allowedOrigins.push(url);
-      }
-      // Remove trailing slash if user included one, to make matching bulletproof
-      const cleanUrl = url.replace(/\/$/, '');
-      if (allowedOrigins.indexOf(cleanUrl) === -1) {
-        allowedOrigins.push(cleanUrl);
-      }
-    }
-  });
+// CORS configuration: Allow FRONTEND_URL origin (defaults to * if not set)
+let allowedOrigin = process.env.FRONTEND_URL || '*';
+if (allowedOrigin !== '*') {
+  allowedOrigin = allowedOrigin.trim().replace(/\/$/, '');
 }
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
-    if (!origin) return callback(null, true);
-    
-    const isAllowed = allowedOrigins.indexOf(origin) !== -1 || 
-                      origin.endsWith('.vercel.app');
-                      
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.log(`Blocked by CORS: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: allowedOrigin,
   credentials: true,
-  optionsSuccessStatus: 200 // some legacy browsers choke on 204
+  optionsSuccessStatus: 200
 };
 
 // Middleware
