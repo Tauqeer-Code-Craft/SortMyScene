@@ -17,6 +17,7 @@ export const EventDetailsPage = ({ navigateTo, params }) => {
 
   // Active reservation details
   const [activeReservation, setActiveReservation] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // Hook for the reservation countdown
   const { formattedTime, isExpired } = useReservationTimer(
@@ -134,6 +135,7 @@ export const EventDetailsPage = ({ navigateTo, params }) => {
     if (selectedSeats.length === 0) return;
     setError('');
     setWarningMessage('');
+    setSubmitting(true);
 
     try {
       const res = await api.reserveSeats(eventId, selectedSeats);
@@ -151,24 +153,27 @@ export const EventDetailsPage = ({ navigateTo, params }) => {
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to hold seats. They might be taken.');
       fetchSeatMap(true);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleConfirmBooking = async () => {
     if (!activeReservation) return;
     setError('');
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const res = await api.confirmBooking(activeReservation.id);
       navigateTo('booking-confirmation', { bookingDetails: res });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to confirm booking.');
-      setLoading(false);
       // Clean up reservation state since it might have expired on server
       setActiveReservation(null);
       setSelectedSeats([]);
       fetchSeatMap();
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -440,9 +445,15 @@ export const EventDetailsPage = ({ navigateTo, params }) => {
                   id="reserve-seats-btn"
                   className="btn btn-primary btn-block"
                   onClick={handleReserve}
-                  disabled={selectedSeats.length === 0}
+                  disabled={selectedSeats.length === 0 || submitting}
                 >
-                  Reserve Selected Seats
+                  {submitting ? (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <span className="spinner-sm"></span> Reserving...
+                    </span>
+                  ) : (
+                    'Reserve Selected Seats'
+                  )}
                 </button>
               ) : (
                 <button
@@ -450,8 +461,15 @@ export const EventDetailsPage = ({ navigateTo, params }) => {
                   className="btn btn-primary btn-block"
                   style={{ backgroundColor: 'var(--success)', borderColor: 'var(--success)' }}
                   onClick={handleConfirmBooking}
+                  disabled={submitting}
                 >
-                  Confirm & Pay Ticket
+                  {submitting ? (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <span className="spinner-sm"></span> Processing...
+                    </span>
+                  ) : (
+                    'Confirm & Pay Ticket'
+                  )}
                 </button>
               )}
             </div>

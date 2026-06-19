@@ -21,22 +21,37 @@ const releaseExpiredReservations = async (eventId = null) => {
 
     console.log(`Found ${expiredReservations.length} expired reservations to clean up...`);
 
-    // Revert seats to 'available' for each expired reservation
-    for (const res of expiredReservations) {
-      const result = await Seat.updateMany(
-        {
-          eventId: res.eventId,
-          seatNumber: { $in: res.seatNumbers },
-          status: 'reserved',
+    if (eventId) {
+      // Optimize for specific eventId: a single bulk update
+      const allSeatNumbers = Array.from(new Set(expiredReservations.flatMap((r) => r.seatNumbers)));
+      if (allSeatNumbers.length > 0) {
+        const result = await Seat.updateMany(
+          {
+            eventId,
+            seatNumber: { $in: allSeatNumbers },
+            status: 'reserved',
+          },
+          { status: 'available' }
+        );
+        console.log(`Released ${result.modifiedCount} seats for event ${eventId} in bulk.`);
+      }
+    } else {
+      // Global clean up: use bulkWrite to run updates in parallel in one DB roundtrip
+      const bulkUpdates = expiredReservations.map((res) => ({
+        updateMany: {
+          filter: {
+            eventId: res.eventId,
+            seatNumber: { $in: res.seatNumbers },
+            status: 'reserved',
+          },
+          update: { status: 'available' },
         },
-        { status: 'available' }
-      );
-      console.log(
-        `Released ${result.modifiedCount} seats for event ${res.eventId} from expired reservation.`
-      );
+      }));
+      await Seat.bulkWrite(bulkUpdates);
+      console.log(`Released seats for ${expiredReservations.length} reservations in bulk.`);
     }
 
-    // Delete the expired reservations
+    // Delete the expired reservations in one query
     const deleteResult = await Reservation.deleteMany({
       _id: { $in: expiredReservations.map((r) => r._id) },
     });
